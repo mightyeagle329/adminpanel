@@ -205,7 +205,8 @@ async function makeRequest<T>(
  * Send questions to backend API
  */
 export async function sendQuestionsToBackend(
-  questions: GeneratedQuestion[]
+  questions: GeneratedQuestion[],
+  accessToken: string,
 ): Promise<BackendApiResponse> {
   if (!questions || questions.length === 0) {
     throw new BackendApiError(
@@ -216,10 +217,8 @@ export async function sendQuestionsToBackend(
     );
   }
 
-  // Prepare payload - only send question text
-  const payload = {
-    questions: questions.map(q => q.question),
-  };
+  // Prepare payload as array of objects: { title: string }[]
+  const payload = questions.map((q) => ({ title: q.question }));
 
   // Construct URL
   const url = `${API_CONFIG.baseUrl}${ENDPOINTS.createMarket}`;
@@ -230,6 +229,7 @@ export async function sendQuestionsToBackend(
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(payload),
   });

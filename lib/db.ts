@@ -331,6 +331,12 @@ export async function getQuestions(): Promise<GeneratedQuestion[]> {
   return db.questions;
 }
 
+export async function clearQuestions(): Promise<void> {
+  const db = await readDb();
+  db.questions = [];
+  await writeDb(db);
+}
+
 export async function updateQuestion(id: string, updates: Partial<GeneratedQuestion>): Promise<void> {
   const db = await readDb();
   const index = db.questions.findIndex(q => q.id === id);

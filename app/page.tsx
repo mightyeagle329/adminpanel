@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Radio, TrendingUp, Twitter, Rss, Loader2, CheckCircle2, AlertCircle, BarChart3 } from 'lucide-react';
+import { WalletConnectButton } from '@/components/WalletConnectButton';
 
 interface SourceStats {
   telegram: number;
@@ -148,14 +149,19 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen p-4 bg-gray-950">
       <div className="max-w-6xl mx-auto space-y-4">
-        {/* Header - Compact */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">
-            News Tracking Dashboard
-          </h1>
-          <p className="text-gray-400 text-sm">
-            Multi-source crypto, politics & financial news monitoring
-          </p>
+        {/* Header + Wallet Connect */}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">
+              News Tracking Dashboard
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Multi-source crypto, politics & financial news monitoring
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <WalletConnectButton />
+          </div>
         </div>
 
         {/* Source Statistics - Compact Grid */}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeAllSources } from '@/lib/orchestrator';
-import { saveUnifiedPosts } from '@/lib/db';
+import { saveUnifiedPosts, clearQuestions } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes for Vercel
@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
 
     // Save to in-memory storage
     await saveUnifiedPosts(result.posts);
+
+    // Clear any previously generated questions so user must regenerate
+    await clearQuestions();
 
     return NextResponse.json({
       success: result.success,

@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { Sparkles, Loader2, Send, CheckCircle2 } from 'lucide-react';
 import { GeneratedQuestion } from '@/lib/types';
 import SourceBadge from '@/components/SourceBadge';
+import { useAuthSession } from '@/components/AuthSessionProvider';
 
 export default function QuestionsPage() {
+  const { session } = useAuthSession();
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -15,6 +17,7 @@ export default function QuestionsPage() {
 
   useEffect(() => {
     loadPostCount();
+    loadExistingQuestions();
   }, []);
 
   const loadPostCount = async () => {
@@ -24,6 +27,19 @@ export default function QuestionsPage() {
       setPostCount(data.total || 0);
     } catch (error) {
       console.error('Error loading post count:', error);
+    }
+  };
+
+  const loadExistingQuestions = async () => {
+    try {
+      const res = await fetch('/api/questions');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.questions)) {
+        setQuestions(data.questions);
+      }
+    } catch (error) {
+      console.error('Error loading existing questions:', error);
     }
   };
 
@@ -60,9 +76,23 @@ export default function QuestionsPage() {
   };
 
   const toggleQuestion = (id: string) => {
-    setQuestions(questions.map(q => 
-      q.id === id ? { ...q, selected: !q.selected } : q
-    ));
+    setQuestions(prev => {
+      const next = prev.map(q =>
+        q.id === id ? { ...q, selected: !q.selected } : q
+      );
+
+      const updated = next.find(q => q.id === id);
+      if (updated) {
+        // Persist selection to backend (best-effort, async)
+        fetch('/api/questions', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, selected: updated.selected }),
+        }).catch(() => {});
+      }
+
+      return next;
+    });
   };
 
   const sendToBackend = async () => {
@@ -70,6 +100,13 @@ export default function QuestionsPage() {
     
     if (selected.length === 0) {
       alert('⚠️ Please select at least one question');
+      return;
+    }
+
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      alert('⚠️ Please connect your wallet and complete sign-in before sending questions to the backend.');
       return;
     }
 
@@ -84,7 +121,7 @@ export default function QuestionsPage() {
         return;
       }
 
-      const response = await sendQuestionsToBackend(selected);
+      const response = await sendQuestionsToBackend(selected, accessToken);
       
       const successMessage = 
         `✅ Successfully sent ${selected.length} question${selected.length > 1 ? 's' : ''} to backend!\n\n` +

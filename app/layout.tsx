@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import { SolanaWalletProvider } from "@/components/SolanaWalletProvider";
+import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,17 +20,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex h-screen overflow-hidden bg-gray-950">
-          {/* Sidebar - fixed width on desktop, hidden on mobile */}
-          <aside className="hidden lg:block w-56 flex-shrink-0 border-r border-gray-800">
-            <Sidebar />
-          </aside>
+        <SolanaWalletProvider>
+          <AuthSessionProvider>
+            <div className="flex h-screen overflow-hidden bg-gray-950">
+              {/* Sidebar - fixed width on desktop, hidden on mobile */}
+              <aside className="hidden lg:block w-56 flex-shrink-0 border-r border-gray-800">
+                <Sidebar />
+              </aside>
 
-          {/* Main content area - scrollable */}
-          <main className="flex-1 overflow-y-auto bg-gray-950">
-            {children}
-          </main>
-        </div>
+              {/* Main content area - scrollable */}
+              <main className="flex-1 overflow-y-auto bg-gray-950">
+                {children}
+              </main>
+            </div>
+          </AuthSessionProvider>
+        </SolanaWalletProvider>
       </body>
     </html>
   );
