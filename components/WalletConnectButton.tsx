@@ -13,7 +13,7 @@ function shortAddress(address: string) {
 
 export function WalletConnectButton() {
   const { connected, publicKey, connect, disconnect } = useWallet();
-  const { signing, needsSignIn, session, signIn } = useWalletAuth();
+  const { signing, needsSignIn, session, signIn, clearSession } = useWalletAuth();
   const { setVisible } = useWalletModal();
 
   const handleClick = useCallback(async () => {
@@ -36,10 +36,12 @@ export function WalletConnectButton() {
   const handleDisconnect = useCallback(async () => {
     try {
       await disconnect();
+      // Clear auth session so user must sign in again next time
+      clearSession();
     } catch (e) {
       console.error("Wallet disconnect error", e);
     }
-  }, [disconnect]);
+  }, [clearSession, disconnect]);
 
   const label = (() => {
     if (signing) return "Signing...";

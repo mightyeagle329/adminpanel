@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Radio, TrendingUp, Twitter, Rss, Database, Sparkles, Send, Settings } from 'lucide-react';
+import { Home, Radio, TrendingUp, Twitter, Rss, Database, Sparkles, Send, Settings, BarChart3 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -15,6 +15,7 @@ export default function Sidebar() {
     { name: 'RSS Feeds', href: '/sources/rss', icon: Rss },
     { name: 'All Data', href: '/data', icon: Database },
     { name: 'Questions', href: '/questions', icon: Sparkles },
+    { name: 'Markets', href: '/markets', icon: BarChart3 },
   ];
 
   return (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { SolanaAuthPayload, buildSolanaAuthMessage, encodeSignedMessage } from "@/lib/walletAuth";
 import { useAuthSession } from "@/components/AuthSessionProvider";
+import { useToast } from "@/components/ToastProvider";
 
 type LoginRequest = {
   auth_provider: string; // "wallet"
@@ -17,6 +18,7 @@ const STORAGE_KEY = "solanaAuthPayload";
 export function useWalletAuth() {
   const { connected, publicKey, signMessage } = useWallet();
   const { session, setSession } = useAuthSession();
+  const { addToast } = useToast();
 
   const [payload, setPayload] = useState<SolanaAuthPayload | null>(() => {
     if (typeof window === "undefined") return null;
@@ -65,13 +67,11 @@ export function useWalletAuth() {
     if (!publicKey) {
       const msg = "Wallet not connected";
       setError(msg);
-      if (typeof window !== "undefined") alert(msg);
       return null;
     }
     if (!signMessage) {
       const msg = "Wallet does not support message signing";
       setError(msg);
-      if (typeof window !== "undefined") alert(msg);
       return null;
     }
 
@@ -83,7 +83,17 @@ export function useWalletAuth() {
       const message = JSON.stringify(msgObj);
       const encoded = new TextEncoder().encode(message);
 
-      const signatureBytes = await signMessage(encoded);
+      let signatureBytes: Uint8Array;
+      try {
+        signatureBytes = await signMessage(encoded);
+      } catch (signErr: any) {
+        console.error("Wallet signMessage error", signErr);
+        const msg = signErr?.message || "User rejected message signing";
+        setError(msg);
+        addToast({ description: `Sign message failed: ${msg}`, variant: "error" });
+        return null;
+      }
+
       const signedMessage = encodeSignedMessage(signatureBytes);
       const next: SolanaAuthPayload = { message, signedMessage };
 
@@ -113,8 +123,8 @@ export function useWalletAuth() {
         setPayload(null);
         if (typeof window !== "undefined") {
           window.localStorage.removeItem(STORAGE_KEY);
-          alert(`Wallet sign-in failed: ${msg}`);
         }
+        addToast({ description: `Wallet sign-in failed: ${msg}`, variant: "error" });
         return null;
       }
 
@@ -126,8 +136,8 @@ export function useWalletAuth() {
         setPayload(null);
         if (typeof window !== "undefined") {
           window.localStorage.removeItem(STORAGE_KEY);
-          alert(`Wallet sign-in failed: ${msg}`);
         }
+        addToast({ description: `Wallet sign-in failed: ${msg}`, variant: "error" });
         return null;
       }
 
@@ -163,8 +173,8 @@ export function useWalletAuth() {
         setPayload(null);
         if (typeof window !== "undefined") {
           window.localStorage.removeItem(STORAGE_KEY);
-          alert(`Wallet sign-in failed: ${msg}`);
         }
+        addToast({ description: `Wallet sign-in failed: ${msg}`, variant: "error" });
         return null;
       }
     } catch (e: any) {
@@ -176,8 +186,8 @@ export function useWalletAuth() {
       setPayload(null);
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(STORAGE_KEY);
-        alert(`Wallet sign-in failed: ${msg}`);
       }
+      addToast({ description: `Wallet sign-in failed: ${msg}`, variant: "error" });
       return null;
     } finally {
       setSigning(false);
@@ -192,5 +202,12 @@ export function useWalletAuth() {
     needsSignIn,
     session,
     signIn,
+    clearSession: () => {
+      setSession(null);
+      setPayload(null);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
+    },
   };
 }

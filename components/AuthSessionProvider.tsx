@@ -28,15 +28,21 @@ export function AuthSessionProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [session, setSessionState] = useState<WalletSession | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [session, setSessionState] = useState<WalletSession | null>(null);
+
+  // Load session from localStorage on client after mount to avoid
+  // server/client hydration mismatches.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as WalletSession) : null;
+      if (raw) {
+        setSessionState(JSON.parse(raw) as WalletSession);
+      }
     } catch {
-      return null;
+      // ignore
     }
-  });
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

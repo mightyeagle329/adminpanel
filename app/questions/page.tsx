@@ -5,9 +5,11 @@ import { Sparkles, Loader2, Send, CheckCircle2 } from 'lucide-react';
 import { GeneratedQuestion } from '@/lib/types';
 import SourceBadge from '@/components/SourceBadge';
 import { useAuthSession } from '@/components/AuthSessionProvider';
+import { useToast } from '@/components/ToastProvider';
 
 export default function QuestionsPage() {
   const { session } = useAuthSession();
+  const { addToast } = useToast();
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -64,49 +66,43 @@ export default function QuestionsPage() {
 
       if (data.success) {
         setQuestions(data.questions);
-        alert(`✅ Generated ${data.questions.length} questions!\n\nSaved to: ${data.filename}`);
+        addToast({
+          description: `Generated ${data.questions.length} questions.\nSaved to: ${data.filename}`,
+          variant: 'success',
+        });
       } else {
-        alert(`❌ Error: ${data.error}`);
+        addToast({ description: `Error: ${data.error}`, variant: 'error' });
       }
     } catch (error: any) {
-      alert(`❌ Error: ${error.message}`);
+      addToast({ description: `Error: ${error.message}`, variant: 'error' });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const toggleQuestion = (id: string) => {
-    setQuestions(prev => {
-      const next = prev.map(q =>
+    setQuestions(prev =>
+      prev.map(q =>
         q.id === id ? { ...q, selected: !q.selected } : q
-      );
-
-      const updated = next.find(q => q.id === id);
-      if (updated) {
-        // Persist selection to backend (best-effort, async)
-        fetch('/api/questions', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, selected: updated.selected }),
-        }).catch(() => {});
-      }
-
-      return next;
-    });
+      )
+    );
   };
 
   const sendToBackend = async () => {
     const selected = questions.filter(q => q.selected);
     
     if (selected.length === 0) {
-      alert('⚠️ Please select at least one question');
+      addToast({ description: 'Please select at least one question', variant: 'warning' });
       return;
     }
 
     const accessToken = session?.access_token;
 
     if (!accessToken) {
-      alert('⚠️ Please connect your wallet and complete sign-in before sending questions to the backend.');
+      addToast({
+        description: 'Please connect your wallet and complete sign-in before sending questions to the backend.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -116,26 +112,28 @@ export default function QuestionsPage() {
       
       const configValidation = validateApiConfig();
       if (!configValidation.isValid) {
-        alert(`⚠️ API Configuration Error\n\n${configValidation.errors.join('\n')}`);
+        addToast({
+          description: `API Configuration Error\n\n${configValidation.errors.join('\n')}`,
+          variant: 'error',
+        });
         setIsSending(false);
         return;
       }
 
       const response = await sendQuestionsToBackend(selected, accessToken);
       
-      const successMessage = 
-        `✅ Successfully sent ${selected.length} question${selected.length > 1 ? 's' : ''} to backend!\n\n` +
-        (response.message ? `Message: ${response.message}\n\n` : '') +
-        (response.data ? `Response:\n${JSON.stringify(response.data, null, 2)}` : '');
-      
-      alert(successMessage);
+      const successMessage =
+        `Successfully sent ${selected.length} question${selected.length > 1 ? 's' : ''} to backend.` +
+        (response.message ? `\nMessage: ${response.message}` : '');
+
+      addToast({ description: successMessage, variant: 'success' });
     } catch (error: any) {
       const { BackendApiError, formatApiError } = await import('@/lib/backendApi');
       
       if (error instanceof BackendApiError) {
-        alert(formatApiError(error));
+        addToast({ description: formatApiError(error), variant: 'error' });
       } else {
-        alert(`❌ Unexpected Error\n\n${error.message}`);
+        addToast({ description: `Unexpected Error\n\n${error.message}`, variant: 'error' });
       }
     } finally {
       setIsSending(false);
@@ -143,6 +141,15 @@ export default function QuestionsPage() {
   };
 
   const selectedCount = questions.filter(q => q.selected).length;
+  const allSelected = questions.length > 0 && selectedCount === questions.length;
+
+  const handleSelectAllToggle = () => {
+    const nextSelected = !allSelected;
+
+    // Update local state only; selection is not persisted to disk to
+    // avoid concurrent writes corrupting the JSON db file.
+    setQuestions(prev => prev.map(q => ({ ...q, selected: nextSelected })));
+  };
 
   return (
     <div className="min-h-screen p-4 bg-gray-950">
@@ -202,9 +209,18 @@ export default function QuestionsPage() {
         {questions.length > 0 && (
           <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-white">
-                Questions ({selectedCount}/{questions.length} selected)
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-sm font-bold text-white">
+                  Questions ({selectedCount}/{questions.length} selected)
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleSelectAllToggle}
+                  className="px-2.5 py-1 rounded-full border border-gray-700 bg-gray-800 text-[11px] text-gray-200 hover:bg-gray-700 hover:border-gray-600 transition-colors"
+                >
+                  {allSelected ? 'Clear all' : 'Select all'}
+                </button>
+              </div>
               <button
                 onClick={sendToBackend}
                 disabled={isSending || selectedCount === 0}

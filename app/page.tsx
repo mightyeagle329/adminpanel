@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Radio, TrendingUp, Twitter, Rss, Loader2, CheckCircle2, AlertCircle, BarChart3 } from 'lucide-react';
+import { useToast } from '@/components/ToastProvider';
 import { WalletConnectButton } from '@/components/WalletConnectButton';
 
 interface SourceStats {
@@ -14,6 +15,7 @@ interface SourceStats {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [stats, setStats] = useState<SourceStats>({ telegram: 0, polymarket: 0, twitter: 0, rss: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [lastScrape, setLastScrape] = useState<{ time: string; total: number; stats?: SourceStats } | null>(null);
@@ -92,16 +94,22 @@ export default function Dashboard() {
           message += '\n\nCheck console for details.';
         }
         
-        alert(message);
+        addToast({ description: message, variant: 'success' });
         
         // Reload the page to show updated data
         await loadStats();
       } else {
-        alert(`⚠️ Scraping failed:\n\n${result.error || 'Unknown error'}`);
+        addToast({
+          description: `Scraping failed:\n\n${result.error || 'Unknown error'}`,
+          variant: 'error',
+        });
       }
     } catch (error: any) {
       console.error('Error during scraping:', error);
-      alert(`❌ Error during scraping:\n\n${error.message}`);
+      addToast({
+        description: `Error during scraping:\n\n${error.message}`,
+        variant: 'error',
+      });
     } finally {
       setIsScraping(false);
     }
