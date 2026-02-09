@@ -41,7 +41,7 @@ export async function listQuestionFiles(): Promise<string[]> {
     return files.filter(f => f.startsWith('questions_') && f.endsWith('.json'))
       .sort()
       .reverse(); // Newest first
-  } catch (error) {
+  } catch {
     return [];
   }
 }

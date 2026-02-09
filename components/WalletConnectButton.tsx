@@ -12,7 +12,7 @@ function shortAddress(address: string) {
 }
 
 export function WalletConnectButton() {
-  const { connected, publicKey, connect, disconnect } = useWallet();
+  const { connected, publicKey, disconnect } = useWallet();
   const { signing, needsSignIn, session, signIn, clearSession } = useWalletAuth();
   const { setVisible } = useWalletModal();
 

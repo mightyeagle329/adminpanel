@@ -155,7 +155,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen p-4 bg-gray-950">
+    <div className="min-h-screen p-4">
       <div className="max-w-6xl mx-auto space-y-4">
         {/* Header + Wallet Connect */}
         <div className="mb-6 flex items-start justify-between gap-4">
@@ -180,7 +180,7 @@ export default function Dashboard() {
               <button
                 key={source.name}
                 onClick={() => router.push(source.href)}
-                className="bg-gray-900 rounded-lg border border-gray-800 p-3 hover:bg-gray-850 hover:border-gray-700 transition-all text-left group"
+                className="bg-[#252350] rounded-lg border border-gray-800 p-3 hover:bg-gray-850 hover:border-gray-700 transition-all text-left group"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`w-6 h-6 rounded ${source.color} p-1 flex-shrink-0`}>
@@ -202,7 +202,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions - Compact Buttons */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
+        <div className="bg-[#252350] rounded-lg border border-gray-700 p-5">
           <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-cyan-400" />
             Quick Actions

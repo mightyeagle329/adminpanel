@@ -46,7 +46,7 @@ function generateRandomAmount(): string {
   return getRandomElement(amounts);
 }
 
-function generateMockQuestion(postIds: string[]): string {
+function generateMockQuestion(_postIds: string[]): string {
   const template = getRandomElement(mockQuestionTemplates);
   
   return template

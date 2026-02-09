@@ -1,18 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Loader2, Rss, Power, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Loader2, Rss, Power } from 'lucide-react';
 import { RSSFeed } from '@/lib/types';
 
 export default function RSSSourcesPage() {
   const [feeds, setFeeds] = useState<RSSFeed[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  
-  const [newFeed, setNewFeed] = useState({
+
+  // Local draft for a new feed. Mirror the RSSFeed shape for the fields we edit.
+  const [newFeed, setNewFeed] = useState<Pick<RSSFeed, 'name' | 'url' | 'category'>>({
     name: '',
     url: '',
-    category: 'crypto' as const,
+    category: 'crypto',
   });
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export default function RSSSourcesPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 bg-gray-950">
+    <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Header - Compact */}
         <div className="flex items-center gap-3 mb-3">
@@ -106,7 +107,7 @@ export default function RSSSourcesPage() {
         </div>
 
         {/* Add Feed Form - Compact */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-4">
           <h2 className="text-sm font-bold text-white mb-3">Add New Feed</h2>
           <div className="space-y-2">
             <input
@@ -126,7 +127,7 @@ export default function RSSSourcesPage() {
             <div className="flex gap-2">
               <select
                 value={newFeed.category}
-                onChange={(e) => setNewFeed({ ...newFeed, category: e.target.value as any })}
+                onChange={(e) => setNewFeed({ ...newFeed, category: e.target.value as RSSFeed['category'] })}
                 className="flex-1 px-3 py-2 text-sm bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="crypto">Crypto</option>
@@ -147,7 +148,7 @@ export default function RSSSourcesPage() {
         </div>
 
         {/* Feeds List - Compact */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-4">
           <h2 className="text-sm font-bold text-white mb-3">
             Active Feeds ({feeds.filter(f => f.enabled).length}/{feeds.length})
           </h2>

@@ -35,7 +35,6 @@ export default function MarketsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [total, setTotal] = useState(0);
   const [viewMode, setViewMode] = useState<'markets' | 'updated'>('markets');
@@ -52,12 +51,10 @@ export default function MarketsPage() {
     // Only run on client after mount; initial render on server should not call fetch
     if (!mounted || viewMode !== 'markets') return;
     fetchMarkets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, page, limit, mounted, viewMode]);
 
   const fetchMarkets = async () => {
     setIsLoading(true);
-    setError(null);
 
     try {
       const params = new URLSearchParams({ status, limit: String(limit), page: String(page) });
@@ -78,7 +75,15 @@ export default function MarketsPage() {
       const nextMarkets: Market[] = Array.isArray(data?.markets) ? data.markets : [];
       const nextTotal: number = typeof data?.total === 'number' ? data.total : nextMarkets.length;
 
-      setMarkets(nextMarkets);
+      // Apply any local status overrides from updatedChanges so that
+      // when we return to a page, we still see the latest edited status
+      // instead of the original backend value.
+      const adjustedMarkets: Market[] = nextMarkets.map((m) => {
+        const change = updatedChanges[m.market_id];
+        return change ? { ...m, status: change.updated_status } : m;
+      });
+
+      setMarkets(adjustedMarkets);
       setTotal(nextTotal);
 
       // Capture original statuses for revert detection
@@ -90,15 +95,13 @@ export default function MarketsPage() {
 
       if (!res.ok) {
         const msg = (data && (data.error || data.message)) || `Request failed (${res.status})`;
-        setError(msg);
         addToast({ description: msg, variant: 'error' });
       } else {
         addToast({ description: `Loaded markets (${status}) page ${page}`, variant: 'success' });
       }
     } catch (e: any) {
-      console.error('Error fetching markets', e);
+      console.warn('Error fetching markets', e);
       const msg = e?.message || 'Unknown error while fetching markets';
-      setError(msg);
       addToast({ description: msg, variant: 'error' });
     } finally {
       setIsLoading(false);
@@ -214,8 +217,8 @@ export default function MarketsPage() {
 
   return (
     <>
-    <div className="min-h-screen p-4 bg-gray-950">
-      <div className="max-w-6xl mx-auto space-y-4">
+    <div className="w-full h-full flex flex-col overflow-hidden text-white">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
@@ -234,7 +237,7 @@ export default function MarketsPage() {
         </div>
 
         {/* Status Filter + Updated view toggle */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-3 flex flex-wrap gap-2 items-center">
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-3 flex flex-wrap gap-2 items-center">
           {STATUS_OPTIONS.map((s) => {
             const active = status === s;
             return (
@@ -266,15 +269,8 @@ export default function MarketsPage() {
           </button>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="bg-red-900/30 border border-red-700/60 text-red-200 text-xs rounded-lg p-3 whitespace-pre-wrap">
-            {error}
-          </div>
-        )}
-
-        {/* Simple debug view for now */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4 space-y-3">
+        {/* Main content - fixed header, scrolling table */}
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-4 space-y-3 flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
             <span>
               Status: <span className="text-white font-medium">{status}</span> · Page: <span className="text-white font-medium">{page}</span> /{' '}
@@ -323,7 +319,7 @@ export default function MarketsPage() {
                 No markets found for this status.
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[480px]">
+              <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
                 <table className="min-w-full text-xs text-gray-200">
                   <thead className="bg-gray-800/80 sticky top-0 z-10">
                     <tr>
@@ -386,7 +382,7 @@ export default function MarketsPage() {
                   No markets have been updated yet. Change statuses in the markets view, then return here.
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-[480px]">
+                <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
                   <table className="min-w-full text-xs text-gray-200">
                     <thead className="bg-gray-800/80 sticky top-0 z-10">
                       <tr>

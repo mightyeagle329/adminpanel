@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Radio, TrendingUp, Twitter, Rss, Database, Sparkles, Send, Settings, BarChart3 } from 'lucide-react';
+import { Home, Radio, TrendingUp, Twitter, Rss, Database, Sparkles, Settings, BarChart3 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -19,17 +19,36 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-gray-900">
-      {/* Logo - Compact */}
-      <div className="p-4 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-cyan-400">
-          News Admin
-        </h1>
-        <p className="text-xs text-gray-500">Multi-Source Tracker</p>
+    <div className="flex flex-col h-full text-[13px] text-white">
+      {/* Logo / Brand */}
+      <div className="px-5 pt-6 pb-4">
+        {/*
+          Layout requirements:
+          - Dot #2 slightly raised above dot #1
+          - Dots aligned with "STREAK" text baseline/center
+          - "News Admin" begins below the first dot
+        */}
+        <div className="grid grid-cols-[34px_1fr] grid-rows-[auto_auto] items-start">
+          {/* Dots column */}
+          <div className="row-span-2 relative h-[40px]">
+            <div className="sidebar-dot absolute left-0 top-2" />
+            <div className="sidebar-dot absolute left-[9px] top-1" />
+          </div>
+
+          {/* STREAK title aligned with dots */}
+          <div className="flex items-center h-[26px]">
+            <span className="sidebar-logo-title">STREAK</span>
+          </div>
+
+          {/* News Admin starts under dot #1 */}
+          <div className="-mt-1">
+            <span className="sidebar-logo-subtitle">News Admin</span>
+          </div>
+        </div>
       </div>
 
-      {/* Navigation - Compact */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      {/* Navigation */}
+      <nav className="flex-1 px-4 pt-5 pb-6 space-y-1 overflow-y-auto text-[13px]">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -39,29 +58,38 @@ export default function Sidebar() {
               key={item.name}
               href={item.href}
               className={`
-                flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium transition-all
                 ${isActive 
-                  ? 'bg-cyan-600 text-white' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  ? 'bg-[#2f2a76] text-[#4DE6B8] shadow-[0_0_0_1px_rgba(122,131,255,0.7)]' 
+                  : 'text-white hover:bg-[#27245f]'
                 }
               `}
             >
-              <Icon className="w-4 h-4" />
-              <span>{item.name}</span>
+              <Icon className="w-4 h-4" color={isActive ? '#4DE6B8' : '#FFFFFF'} />
+              <span className="tracking-[0.04em]">{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer - Compact */}
-      <div className="p-3 border-t border-gray-800">
+      {/* Footer */}
+      <div className="px-4 pb-4 pt-2 mt-auto">
+        {(() => {
+          const isSettingsActive = pathname === '/settings';
+          return (
         <Link
           href="/settings"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-all"
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium transition-all ${
+            isSettingsActive
+              ? 'bg-[#2f2a76] text-[#4DE6B8] shadow-[0_0_0_1px_rgba(122,131,255,0.7)]'
+              : 'text-white hover:bg-[#27245f]'
+          }`}
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-4 h-4" color={isSettingsActive ? '#4DE6B8' : '#FFFFFF'} />
           <span>Settings</span>
         </Link>
+          );
+        })()}
       </div>
     </div>
   );

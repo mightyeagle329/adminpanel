@@ -6,7 +6,7 @@
 
 import { PolymarketMarket } from '../types';
 
-const POLYMARKET_API_URL = process.env.POLYMARKET_API_URL || 'https://clob.polymarket.com';
+// const POLYMARKET_API_URL = process.env.POLYMARKET_API_URL || 'https://clob.polymarket.com';
 
 export interface PolymarketApiResponse {
   data: any[];
@@ -192,7 +192,7 @@ export function transformPolymarketMarket(market: any): PolymarketMarket {
  */
 export async function fetchFilteredMarkets(
   keywords: string[],
-  daysBack: number = 2
+  _daysBack: number = 2
 ): Promise<PolymarketMarket[]> {
   try {
     // Fetch all markets

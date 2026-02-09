@@ -110,7 +110,7 @@ export async function fetchUserTweets(
         if (data.tweets && Array.isArray(data.tweets) && data.tweets.length > 0) return data.tweets;
         if (data.data && Array.isArray(data.data) && data.data.length > 0) return data.data;
         if (Array.isArray(data) && data.length > 0) return data;
-      } catch (error) {
+      } catch {
         // Try next endpoint
         continue;
       }
@@ -214,8 +214,8 @@ export async function testTwitterConnection(): Promise<boolean> {
     // Try to fetch tweets from a known account
     const tweets = await fetchUserTweets('elonmusk', 1);
     return tweets.length > 0;
-  } catch (error) {
-    console.error('Twitter connection test failed:', error);
+  } catch {
+    console.error('Twitter connection test failed');
     return false;
   }
 }

@@ -1,6 +1,5 @@
 // Question generator adapted for multi-source content
 import OpenAI from 'openai';
-import { UnifiedPost } from './types';
 
 interface Post {
   id: string;
@@ -26,7 +25,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-function safeArray(v: any): any[] {
+function safeArray(v: unknown): any[] {
   return Array.isArray(v) ? v : [];
 }
 

@@ -92,7 +92,7 @@ export default function TwitterSourcesPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 bg-gray-950">
+    <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Header - Compact */}
         <div className="flex items-center gap-3 mb-3">
@@ -106,7 +106,7 @@ export default function TwitterSourcesPage() {
         </div>
 
         {/* Add Account Form - Compact */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-4">
           <h2 className="text-sm font-bold text-white mb-3">Add New Account</h2>
           <div className="space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -150,7 +150,7 @@ export default function TwitterSourcesPage() {
         </div>
 
         {/* Accounts List - Compact */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-4">
           <h2 className="text-sm font-bold text-white mb-3">
             Active Accounts ({accounts.filter(a => a.enabled).length}/{accounts.length})
           </h2>

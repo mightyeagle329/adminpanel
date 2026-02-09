@@ -24,9 +24,12 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Body background */
+/* Body background - match app mock (deep indigo with subtle light overlay) */
 body {
-  background-color: rgb(3, 7, 18);
+  background:
+    linear-gradient(0deg, #ffffff, #ffffff),
+    linear-gradient(0deg, #0f0d3f, #0f0d3f);
+  background-blend-mode: normal, normal;
   color: white;
 }
 
@@ -53,4 +56,108 @@ body {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* --- Custom design tokens / utility classes for the new UI --- */
+
+:root {
+  /* Core brand colors extracted from the mock */
+  --app-bg-surface: #17154b;
+  --app-sidebar-bg: #221f54;
+  --app-sidebar-border: #2e2a73;
+  --app-text-muted: #8e95d0;
+  --app-accent-green: #4bffb5;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+}
+
+.app-shell-inner {
+  width: 100%;
+  max-width: none;
+  display: flex;
+  border-radius: 0;
+  background: #17154b;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.app-sidebar-surface {
+  background: var(--app-sidebar-bg);
+  /* Fixed card-style sidebar: radius 27px on all corners, height pinned in layout */
+  border-radius: 27px;
+}
+
+/* Primary glowing CTA ("Generate with AI") */
+.btn-primary-glow {
+  border-radius: 16px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #fee233;
+  background: linear-gradient(180deg, #f68504 7.55%, #942700 100%);
+  box-shadow:
+    0 0 10px -2px #fee233,
+    0 2px 6px 4px #ff5e00cc inset;
+}
+
+/* Gradient-outline button ("Send to Backend") */
+.btn-outline-gradient {
+  position: relative;
+  border-radius: 11.5px;
+  padding: 1px; /* space for gradient border */
+  background: linear-gradient(138.53deg,
+      #24233e 3.27%,
+      #6a64ff 20.73%,
+      #13113a 45.42%,
+      #c3c1fb 69.11%,
+      #423f8f 97.18%);
+}
+
+.btn-outline-gradient > .btn-outline-inner {
+  border-radius: inherit;
+  background: #241f57;
+}
+
+/* Pill-style input / search bar container */
+.pill-input {
+  border-radius: 9999px;
+  background: #241f57;
+  border: 1px solid #34316b;
+}
+
+.pill-input input::placeholder {
+  color: #6c72a8;
+}
+
+/* Sidebar logo styles (STREAK / News Admin) */
+.sidebar-dot {
+  width: 17px;
+  height: 17px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #0f0d3f;
+}
+
+.sidebar-logo-title {
+  font-family: var(--font-ibm-plex-condensed), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #ffffff;
+}
+
+.sidebar-logo-subtitle {
+  font-family: var(--font-ibm-plex-condensed), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.12;
+  letter-spacing: 0.09em; /* 9% */
+  text-transform: uppercase;
+  color: #d5c9ff;
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Radio, TrendingUp, Twitter, Rss, Loader2, CheckCircle2, AlertCircle, BarChart3 } from 'lucide-react';
-import SourceBadge from '@/components/SourceBadge';
+// import SourceBadge from '@/components/SourceBadge';
 
 interface SourceStats {
   telegram: number;
@@ -80,8 +80,9 @@ export default function Dashboard() {
       } else {
         alert(`⚠️ Scraping completed with errors:\n\n${result.errors.map((e: any) => `${e.source}: ${e.error}`).join('\n')}`);
       }
-    } catch (error: any) {
-      alert(`❌ Error during scraping:\n\n${error.message}`);
+    } catch (error) {
+      console.error('Error during scraping:', error);
+      alert('❌ Error during scraping. Check console for details.');
     } finally {
       setIsScraping(false);
     }

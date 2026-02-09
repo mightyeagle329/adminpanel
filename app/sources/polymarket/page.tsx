@@ -95,7 +95,7 @@ export default function PolymarketSourcesPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 bg-gray-950">
+    <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Header - Compact */}
         <div className="flex items-center gap-3 mb-3">
@@ -109,7 +109,7 @@ export default function PolymarketSourcesPage() {
         </div>
 
         {/* Add Topic Form - Compact */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-4">
           <h2 className="text-sm font-bold text-white mb-3">Add New Topic</h2>
           <div className="space-y-2">
             <input
@@ -151,7 +151,7 @@ export default function PolymarketSourcesPage() {
         </div>
 
         {/* Topics List - Compact */}
-        <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+        <div className="bg-[#252350] rounded-lg border border-gray-800 p-4">
           <h2 className="text-sm font-bold text-white mb-3">
             Active Topics ({topics.filter(t => t.enabled).length}/{topics.length})
           </h2>
