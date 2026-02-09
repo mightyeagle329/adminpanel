@@ -320,7 +320,7 @@ export default function QuestionsPage() {
         )}
 
         <div className="flex-1 min-h-0 overflow-hidden mt-2">
-          <div className="h-[400px] overflow-y-auto pr-1 border border-[#34316b] rounded-xl bg-[#221f54]">
+          <div className="h-[500px] overflow-y-auto border border-[#34316b] rounded-xl bg-[#221f54]">
             <table className="w-full text-left text-[12px] text-[var(--app-text-muted)] border-separate border-spacing-0">
               <thead className="sticky top-0 bg-[#252264] z-10">
                 <tr>
