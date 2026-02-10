@@ -86,6 +86,23 @@ export default function MarketsPage() {
       setMarkets(adjustedMarkets);
       setTotal(nextTotal);
 
+      // Save raw backend response for manual testing snapshots
+      try {
+        await fetch('/api/markets/snapshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status,
+            page,
+            limit,
+            total: nextTotal,
+            markets: nextMarkets,
+          }),
+        });
+      } catch (snapshotError) {
+        console.warn('Failed to save markets snapshot:', snapshotError);
+      }
+
       // Capture original statuses for revert detection
       const origins: Record<string, string> = {};
       nextMarkets.forEach(m => {
