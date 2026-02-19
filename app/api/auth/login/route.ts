@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Simple proxy to backend auth service, keeping request/response shapes
 
 const AUTH_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://23.27.186.134:8080";
+  process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://62.171.153.189:8080";
 
 export async function POST(request: NextRequest) {
   try {

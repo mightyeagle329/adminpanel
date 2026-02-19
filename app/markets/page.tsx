@@ -25,7 +25,7 @@ type UpdatedMarketChange = {
 
 const STATUS_OPTIONS: MarketStatus[] = ['OPEN', 'LOCKED', 'SETTLING', 'RESOLVED', 'VOID'];
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://23.27.186.134:8080';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://62.171.153.189:8080';
 
 export default function MarketsPage() {
   const { addToast } = useToast();

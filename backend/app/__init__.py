@@ -1,0 +1,5 @@
+"""
+Streak Admin Panel Backend
+"""
+
+__version__ = "1.0.0"

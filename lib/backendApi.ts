@@ -9,7 +9,7 @@ import { GeneratedQuestion } from './types';
 
 // API Configuration from environment variables
 const API_CONFIG = {
-  baseUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://23.27.186.134:8080',
+  baseUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://62.171.153.189:8080',
   timeout: parseInt(process.env.BACKEND_API_TIMEOUT || '30000', 10),
   retryAttempts: parseInt(process.env.BACKEND_API_RETRY_ATTEMPTS || '3', 10),
   retryDelay: parseInt(process.env.BACKEND_API_RETRY_DELAY || '1000', 10),

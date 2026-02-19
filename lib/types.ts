@@ -199,3 +199,130 @@ export interface RSSItem {
   author?: string;
   categories?: string[];
 }
+
+// ============================================
+// PHASE 5 & PHASE 6 TYPES
+// ============================================
+
+// Phase 5: Market Status
+export type MarketStatus = 'DRAFT' | 'OPEN' | 'LOCKED' | 'SETTLING' | 'RESOLVED' | 'VOID';
+
+export type MarketCategory = 'CRYPTO' | 'FINANCE' | 'SPORTS' | 'HYPE' | 'GLOBAL';
+
+export type MarketBadge = 'NONE' | '🔥 HOT' | '💎 GEM' | '🚨 BREAKING' | '🐳 WHALE' | '🔥 VIRAL' | '⚖️ VERDICT' | '⚔️ RIVALRY' | '⚡ FLASH' | '🏆 FINAL';
+
+export type XPPromoTag = 'NONE' | '✨ 2x XP EVENT';
+
+export interface MarketOutcome {
+  label: string;
+  icon_url?: string;
+}
+
+export interface Market {
+  market_id: string;
+  title: string;
+  category: MarketCategory;
+  sub_tag?: string;
+  status: MarketStatus;
+  banner_image_url?: string;
+  badge: MarketBadge;
+  xp_promo_tag: XPPromoTag;
+  outcome_a: MarketOutcome;
+  outcome_b: MarketOutcome;
+  start_time: string;
+  lock_time: string;
+  resolution_time: string;
+  oracle_source_url: string;
+  batch_id?: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  source: 'AI' | 'ADMIN';
+}
+
+// Phase 6: AI Curator
+export type AIMode = 'HUMAN_REVIEW' | 'FULL_CONTROL';
+
+export type GameMode = 'FLASH_15M' | 'HIGH_JUMP_15M' | 'MARATHON_15M' | 'CLIMAX_30M' | 'DUO_30M' | 'CURATOR_1H' | 'CURATOR_4H' | 'CURATOR_12H' | 'CURATOR_24H';
+
+export interface AICuratorConfig {
+  enabled: boolean;
+  mode: AIMode;
+  interval_seconds: number;
+  max_markets_per_hour: number;
+  auto_publish: boolean;
+  flash_15m_enabled: boolean;
+  high_jump_15m_enabled: boolean;
+  marathon_15m_enabled: boolean;
+  climax_30m_enabled: boolean;
+  duo_30m_enabled: boolean;
+  curator_1h_enabled: boolean;
+  curator_4h_enabled: boolean;
+  curator_12h_enabled: boolean;
+  curator_24h_enabled: boolean;
+}
+
+export interface AICuratorStatus {
+  enabled: boolean;
+  mode: AIMode;
+  is_running: boolean;
+  last_execution?: string;
+  markets_created_today: number;
+  markets_pending_approval: number;
+  next_execution?: string;
+}
+
+export interface AIGeneratedMarketDraft {
+  draft_id: string;
+  question: string;
+  category: MarketCategory;
+  sub_tag: string;
+  badge: MarketBadge;
+  outcome_a_label: string;
+  outcome_b_label: string;
+  duration_hours: number;
+  resolution_source: string;
+  batch_id: string;
+  image_prompt: string;
+  confidence_score: number;
+  trigger_data: Record<string, any>;
+  created_at: string;
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+}
+
+// Treasury & Risk
+export interface VaultComposition {
+  total_value_locked: number;
+  pocket_a_clob: number;
+  pocket_b_house: number;
+  insurance_fund: number;
+}
+
+export interface LiabilityScenario {
+  scenario_name: string;
+  events: string[];
+  potential_payout: number;
+  current_exposure: number;
+  risk_level: string;
+}
+
+// Security
+export interface SybilSuspect {
+  user_id: string;
+  wallet_address: string;
+  detection_reason: string;
+  detected_at: string;
+  is_shadow_banned: boolean;
+  total_trades: number;
+  total_volume: number;
+}
+
+// Communications
+export interface GlobalBanner {
+  banner_id?: string;
+  message: string;
+  color: 'info_blue' | 'warning_yellow' | 'critical_red';
+  action_link?: string;
+  enabled: boolean;
+  created_at?: string;
+}

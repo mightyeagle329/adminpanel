@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Radio, TrendingUp, Twitter, Rss, Database, Sparkles, Settings, BarChart3 } from 'lucide-react';
+import { 
+  Home, Radio, TrendingUp, Twitter, Rss, Database, Sparkles, Settings, BarChart3,
+  Bot, Wand2, Shield, DollarSign, Trophy, Users, Bell, FileText
+} from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -16,6 +19,13 @@ export default function Sidebar() {
     { name: 'All Data', href: '/data', icon: Database },
     { name: 'Questions', href: '/questions', icon: Sparkles },
     { name: 'Markets', href: '/markets', icon: BarChart3 },
+    { name: 'AI Curator', href: '/ai-curator', icon: Bot },
+    { name: 'Market Wizard', href: '/market-wizard', icon: Wand2 },
+    { name: 'Treasury & Risk', href: '/treasury', icon: DollarSign },
+    { name: 'Competitions', href: '/competitions', icon: Trophy },
+    { name: 'Security', href: '/security', icon: Shield },
+    { name: 'CRM', href: '/crm', icon: Users },
+    { name: 'Communications', href: '/communications', icon: Bell },
   ];
 
   return (
