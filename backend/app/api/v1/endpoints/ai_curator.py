@@ -5,6 +5,7 @@ Phase 6: AI Market Generation Engine
 
 from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
+from pydantic import BaseModel
 
 from app.schemas.ai_curator import (
     AICuratorConfig,
@@ -17,6 +18,11 @@ from app.schemas.ai_curator import (
     AIMode,
 )
 from app.schemas.common import BaseResponse
+
+
+class ToggleModeRequest(BaseModel):
+    """Request body for POST /ai-curator/toggle"""
+    mode: AIMode
 
 router = APIRouter()
 
@@ -73,23 +79,23 @@ async def update_curator_config(config: AICuratorConfig, request: Request):
 
 
 @router.post("/toggle")
-async def toggle_ai_mode(mode: AIMode, request: Request):
+async def toggle_ai_mode(body: ToggleModeRequest, request: Request):
     """
     Toggle AI operating mode
-    
+
     HUMAN_REVIEW: AI generates drafts, admin must approve
     FULL_CONTROL: AI auto-publishes markets
     """
     ai_curator = get_ai_curator_from_request(request)
     if not ai_curator:
         raise HTTPException(status_code=503, detail="AI Curator not initialized")
-    
-    ai_curator.config.mode = mode
-    
+
+    ai_curator.config.mode = body.mode
+
     return BaseResponse(
         success=True,
-        message=f"AI mode set to {mode.value}",
-        data={"mode": mode.value},
+        message=f"AI mode set to {body.mode.value}",
+        data={"mode": body.mode.value},
     )
 
 

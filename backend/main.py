@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.api.v1.router import api_router
 from app.services.ai_curator.engine import AICuratorEngine
+from app.services import sources_store
 
 # Setup logging
 setup_logging()
@@ -45,6 +46,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug Mode: {settings.DEBUG}")
     
+    # Seed sources store if empty (creates backend/data/sources.json with defaults)
+    try:
+        sources_store.get_telegram_channels()
+        sources_store.get_twitter_accounts()
+        sources_store.get_rss_feeds()
+        sources_store.get_polymarket_topics()
+        logger.info("✅ Sources store ready (channels, accounts, feeds, topics)")
+    except Exception as e:
+        logger.warning("Sources store seed skipped: %s", e)
+
     # Initialize AI Curator Engine
     global ai_curator_engine
     if settings.AI_CURATOR_ENABLED:

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useToast } from '@/components/ToastProvider';
-import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuthSession } from '@/components/AuthSessionProvider';
+import { Loader2, RefreshCw, ChevronLeft, ChevronRight, Coins } from 'lucide-react';
 
-type MarketStatus = 'OPEN' | 'LOCKED' | 'SETTLING' | 'RESOLVED' | 'VOID';
+type MarketStatus = 'PENDING' | 'OPEN' | 'LOCKED' | 'SETTLING' | 'RESOLVED' | 'VOID';
 
 type Market = {
   market_id: string;
@@ -12,6 +13,12 @@ type Market = {
   yes_account: string;
   no_account: string;
   status: MarketStatus | string;
+};
+
+type PendingMarket = {
+  market_id: string;
+  title: string;
+  status: 'PENDING';
 };
 
 type UpdatedMarketChange = {
@@ -23,15 +30,27 @@ type UpdatedMarketChange = {
   updated_status: MarketStatus;
 };
 
-const STATUS_OPTIONS: MarketStatus[] = ['OPEN', 'LOCKED', 'SETTLING', 'RESOLVED', 'VOID'];
+const STATUS_OPTIONS: MarketStatus[] = ['PENDING', 'OPEN', 'LOCKED', 'SETTLING', 'RESOLVED', 'VOID'];
+
+// Demo data for PENDING tab (backend not yet implemented)
+const PENDING_DEMO_MARKETS: PendingMarket[] = [
+  { market_id: 'pending_1', title: 'Will BTC break above $100,000 within 24 hours?', status: 'PENDING' },
+  { market_id: 'pending_2', title: 'Will ETH fall below $2,000 in the next 24 hours?', status: 'PENDING' },
+  { market_id: 'pending_3', title: 'Will Fed rates announcement move BTC by more than 3%?', status: 'PENDING' },
+  { market_id: 'pending_4', title: 'Will Bitcoin ETF be a major market driver in the next 24 hours?', status: 'PENDING' },
+  { market_id: 'pending_5', title: 'Will Ethereum upgrade announcement happen today?', status: 'PENDING' },
+  { market_id: 'pending_6', title: 'Will Crypto Trading trend push ETH above $3,500?', status: 'PENDING' },
+  { market_id: 'pending_7', title: 'Will Meme coins volume exceed $5B in the next 24 hours?', status: 'PENDING' },
+];
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://62.171.153.189:8080';
 
 export default function MarketsPage() {
   const { addToast } = useToast();
+  const { session } = useAuthSession();
 
   const [mounted, setMounted] = useState(false);
-  const [status, setStatus] = useState<MarketStatus>('OPEN');
+  const [status, setStatus] = useState<MarketStatus>('PENDING');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,14 +61,15 @@ export default function MarketsPage() {
   const [originalStatuses, setOriginalStatuses] = useState<Record<string, string>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    // Only run on client after mount; initial render on server should not call fetch
-    if (!mounted || viewMode !== 'markets') return;
+    // Only run on client after mount; skip fetch for PENDING (uses demo data)
+    if (!mounted || viewMode !== 'markets' || status === 'PENDING') return;
     fetchMarkets();
   }, [status, page, limit, mounted, viewMode]);
 
@@ -183,6 +203,41 @@ export default function MarketsPage() {
     });
   };
 
+  const handleGenerateTokens = async (marketId: string) => {
+    if (!session?.access_token) {
+      addToast({ description: 'You must be signed in to generate tokens.', variant: 'error' });
+      return;
+    }
+
+    setGeneratingIds(prev => new Set(prev).add(marketId));
+    try {
+      // Rust backend endpoint — requires Bearer token from wallet sign-in
+      const url = `${API_BASE.replace(/\/$/, '')}/v1/markets/${encodeURIComponent(marketId)}/generate-tokens`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        addToast({ description: `Tokens generated for market ${marketId}`, variant: 'success' });
+      } else {
+        const msg = data?.error || data?.message || data?.detail || `Request failed (${res.status})`;
+        addToast({ description: `Generate failed: ${msg}`, variant: 'error' });
+      }
+    } catch (e: any) {
+      addToast({ description: `Generate failed: ${e?.message || 'Network error'}`, variant: 'error' });
+    } finally {
+      setGeneratingIds(prev => {
+        const next = new Set(prev);
+        next.delete(marketId);
+        return next;
+      });
+    }
+  };
+
   const updatedList = Object.values(updatedChanges);
 
   const handleViewUpdated = () => {
@@ -290,43 +345,95 @@ export default function MarketsPage() {
         <div className="bg-[#252350] rounded-lg border border-gray-800 p-4 space-y-3 flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
             <span>
-              Status: <span className="text-white font-medium">{status}</span> · Page: <span className="text-white font-medium">{page}</span> /{' '}
-              <span className="text-white font-medium">{totalPages}</span> · Limit: {limit} · Total: {total}
+              Status: <span className="text-white font-medium">{status}</span>
+              {status === 'PENDING' ? (
+                <> · Total: <span className="text-white font-medium">{PENDING_DEMO_MARKETS.length}</span> <span className="text-gray-600">(demo)</span></>
+              ) : (
+                <> · Page: <span className="text-white font-medium">{page}</span> /{' '}
+                <span className="text-white font-medium">{totalPages}</span> · Limit: {limit} · Total: {total}</>
+              )}
             </span>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 mr-3">
-                <span className="text-gray-500">Show:</span>
-                <select
-                  value={limit}
-                  onChange={(e) => handleLimitChange(Number(e.target.value))}
-                  className="px-2 py-1 bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-100"
+            {status !== 'PENDING' && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 mr-3">
+                  <span className="text-gray-500">Show:</span>
+                  <select
+                    value={limit}
+                    onChange={(e) => handleLimitChange(Number(e.target.value))}
+                    className="px-2 py-1 bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-100"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePrevPage}
+                  disabled={page === 1 || isLoading}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded-full bg-gray-800 text-gray-200 border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                  <ChevronLeft className="w-3 h-3" /> Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextPage}
+                  disabled={isLoading || page >= totalPages}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded-full bg-gray-800 text-gray-200 border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next <ChevronRight className="w-3 h-3" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handlePrevPage}
-                disabled={page === 1 || isLoading}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded-full bg-gray-800 text-gray-200 border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-3 h-3" /> Prev
-              </button>
-              <button
-                type="button"
-                onClick={handleNextPage}
-                disabled={isLoading || page >= totalPages}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded-full bg-gray-800 text-gray-200 border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
+            )}
           </div>
 
-          {viewMode === 'markets' ? (
+          {/* PENDING tab: demo data with generate button */}
+          {viewMode === 'markets' && status === 'PENDING' ? (
+            <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+              <table className="min-w-full text-xs text-gray-200">
+                <thead className="bg-gray-800/80 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-300">Title</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-300 w-28">Status</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-300 w-36">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {PENDING_DEMO_MARKETS.map((m) => {
+                    const isGenerating = generatingIds.has(m.market_id);
+                    return (
+                      <tr key={m.market_id} className="hover:bg-gray-800/60">
+                        <td className="px-3 py-2 align-middle">
+                          <div className="text-gray-100 text-xs leading-snug line-clamp-2">{m.title}</div>
+                        </td>
+                        <td className="px-3 py-2 align-middle">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-900/40 border border-amber-500/60 text-[11px] text-amber-300 font-medium">
+                            {m.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 align-middle">
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateTokens(m.market_id)}
+                            disabled={isGenerating}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-700 border border-violet-500 text-white text-[11px] font-medium hover:bg-violet-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isGenerating ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Coins className="w-3 h-3" />
+                            )}
+                            <span>{isGenerating ? 'Generating…' : 'Generate'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : viewMode === 'markets' ? (
             isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />

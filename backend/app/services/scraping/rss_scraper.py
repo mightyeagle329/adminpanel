@@ -12,40 +12,30 @@ logger = logging.getLogger(__name__)
 
 
 class RSSScraper:
-    """RSS feed scraper"""
+    """RSS feed scraper. Uses feeds from sources store."""
     
-    def __init__(self):
-        self.feeds = [
-            {
-                "name": "CoinDesk",
-                "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
-                "category": "crypto"
-            },
-            {
-                "name": "CryptoSlate",
-                "url": "https://cryptoslate.com/feed/",
-                "category": "crypto"
-            },
-            {
-                "name": "Reuters Business",
-                "url": "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
-                "category": "financial"
-            },
-            {
-                "name": "BBC News",
-                "url": "http://feeds.bbci.co.uk/news/rss.xml",
-                "category": "general"
-            },
-        ]
+    def _get_feeds(self):
+        """Load feeds from sources store."""
+        try:
+            from app.services import sources_store
+            stored = sources_store.get_rss_feeds()
+            return [f for f in stored if f.get("enabled", True)]
+        except Exception as e:
+            logger.warning(f"Could not load RSS feeds from store: {e}")
+            return [
+                {"name": "CoinDesk", "url": "https://www.coindesk.com/arc/outboundfeeds/rss/", "category": "crypto"},
+                {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "general"},
+            ]
     
     async def scrape(self, days_back: int, max_items: int) -> List[ScrapedPost]:
-        """Scrape RSS feeds"""
-        logger.info(f"Scraping RSS feeds: {len(self.feeds)}")
+        """Scrape RSS feeds (from sources store)."""
+        feeds = self._get_feeds()
+        logger.info(f"Scraping RSS feeds: {len(feeds)}")
         
         posts = []
         cutoff_date = datetime.utcnow() - timedelta(days=days_back)
         
-        for feed_config in self.feeds[:max_items]:
+        for feed_config in feeds[:max_items]:
             try:
                 # Parse feed
                 feed = feedparser.parse(feed_config["url"])

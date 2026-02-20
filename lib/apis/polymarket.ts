@@ -168,10 +168,82 @@ export function filterActiveMarkets(markets: any[]): any[] {
   });
 }
 
+type OutcomeItem = { outcome: string; price: number; probability: number };
+
+/**
+ * Parse outcomes and outcomePrices from Gamma API (can be JSON strings or arrays)
+ */
+function parseOutcomesArray(market: any): OutcomeItem[] {
+  const rawOutcomes = market.outcomes;
+  const rawPrices = market.outcomePrices ?? market.prices;
+
+  // Already an array of objects with outcome/price
+  if (Array.isArray(rawOutcomes) && rawOutcomes.length > 0) {
+    const first = rawOutcomes[0];
+    if (first && typeof first === 'object' && ('outcome' in first || 'price' in first)) {
+      return rawOutcomes.map((o: any) => {
+        const p = parseFloat(o.probability ?? o.price ?? 0);
+        const price = p <= 1 && p >= 0 ? p : p / 100;
+        const probability = p <= 1 && p >= 0 ? p * 100 : p;
+        return {
+          outcome: o.outcome ?? (o.token_id ? 'Yes' : 'No'),
+          price,
+          probability,
+        };
+      });
+    }
+  }
+
+  // Gamma API: outcomes and outcomePrices as JSON strings e.g. "[\"Yes\", \"No\"]" and "[\"0.65\", \"0.35\"]"
+  let outcomesList: string[] = [];
+  let pricesList: string[] = [];
+
+  if (typeof rawOutcomes === 'string') {
+    try {
+      outcomesList = JSON.parse(rawOutcomes) as string[];
+    } catch {
+      outcomesList = rawOutcomes.split(',').map((s: string) => s.trim());
+    }
+  } else if (Array.isArray(rawOutcomes)) {
+    outcomesList = rawOutcomes.map(String);
+  }
+
+  if (typeof rawPrices === 'string') {
+    try {
+      pricesList = JSON.parse(rawPrices) as string[];
+    } catch {
+      pricesList = rawPrices.split(',').map((s: string) => s.trim());
+    }
+  } else if (Array.isArray(rawPrices)) {
+    pricesList = rawPrices.map(String);
+  }
+
+  if (outcomesList.length === 0 && market.tokens?.length) {
+    return market.tokens.map((t: any, i: number) => {
+      const price = parseFloat(t.price ?? 0);
+      return {
+        outcome: t.outcome || (i === 0 ? 'Yes' : 'No'),
+        price,
+        probability: price * 100,
+      };
+    });
+  }
+
+  return outcomesList.map((outcome: string, i: number) => {
+    const price = parseFloat(pricesList[i] ?? '0');
+    return {
+      outcome,
+      price,
+      probability: price * 100,
+    };
+  });
+}
+
 /**
  * Transform Polymarket market to standardized format
  */
 export function transformPolymarketMarket(market: any): PolymarketMarket {
+  const outcomes = parseOutcomesArray(market);
   return {
     id: market.condition_id || market.id,
     question: market.question || market.title || '',
@@ -179,11 +251,7 @@ export function transformPolymarketMarket(market: any): PolymarketMarket {
     end_date_iso: market.end_date_iso || market.end_time || '',
     active: market.active !== false && !market.closed,
     volume: parseFloat(market.volume || market.volume_24h || 0),
-    outcomes: market.outcomes || market.tokens?.map((token: any, index: number) => ({
-      outcome: token.outcome || (index === 0 ? 'Yes' : 'No'),
-      price: parseFloat(token.price || 0),
-      probability: parseFloat(token.price || 0) * 100,
-    })) || [],
+    outcomes,
   };
 }
 

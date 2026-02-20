@@ -168,8 +168,10 @@ class MarketArchitect:
                 "image_prompt": f"3D render of {asset} coin with price chart, dramatic lighting",
             }
         
+        # SOCIAL_TREND / other: use topic from signal if present for variety
+        topic = (signal.data or {}).get("topic", "a major market event")
         return {
-            "question": "Will a major market event occur in the next 24 hours?",
+            "question": f"Will {topic} be a major market driver in the next 24 hours?",
             "option_a": "YES",
             "option_b": "NO",
             "duration_hours": 24,

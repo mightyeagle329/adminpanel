@@ -115,6 +115,7 @@ async def void_market(market_id: str, request: MarketVoidRequest):
     )
 
 
+
 @router.post("/{market_id}/pause")
 async def pause_market(market_id: str):
     """Pause betting on a market temporarily"""

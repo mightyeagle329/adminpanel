@@ -50,12 +50,9 @@ class Settings(BaseSettings):
     OPENAI_MAX_TOKENS: int = 2000
     OPENAI_TEMPERATURE: float = 0.7
     
-    # Twitter/X
-    TWITTER_API_KEY: str = ""
-    TWITTER_API_SECRET: str = ""
-    TWITTER_ACCESS_TOKEN: str = ""
-    TWITTER_ACCESS_SECRET: str = ""
-    TWITTER_BEARER_TOKEN: str = ""
+    # Twitter/X (RapidAPI)
+    RAPIDAPI_KEY: str = ""
+    RAPIDAPI_HOST: str = "twitter154.p.rapidapi.com"
     
     # RSS
     RSS_FETCH_TIMEOUT: int = 30

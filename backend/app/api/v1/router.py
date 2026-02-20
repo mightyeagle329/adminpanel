@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     treasury,
     security,
     communications,
+    sources,
 )
 
 api_router = APIRouter()
@@ -65,4 +66,10 @@ api_router.include_router(
     communications.router,
     prefix="/communications",
     tags=["Communications"],
+)
+
+api_router.include_router(
+    sources.router,
+    prefix="/sources",
+    tags=["Sources"],
 )

@@ -7,6 +7,7 @@ Listens to external data sources and detects signals for market generation.
 
 import logging
 import asyncio
+import random
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import httpx
@@ -162,35 +163,36 @@ class Watchtower:
             logger.error(f"Error checking crypto signals: {e}")
     
     async def _check_social_signals(self):
-        """Check social media sources for signals"""
+        """
+        Check social media sources for signals.
+
+        CURRENTLY MOCK ONLY: No real Twitter/TikTok/Google Trends API is called.
+        This adds a fake SOCIAL_TREND (HYPE) signal so the AI Curator pipeline
+        can be tested. Real integration would use Twitter API, TikTok, etc.
+        """
         logger.info("Checking social signals...")
         
-        # Mock social signal detection
-        # In production, this would check Twitter API, TikTok, etc.
-        
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                # Check Google Trends (simplified)
-                # In production: use actual Google Trends API
-                
-                # For now, create mock signals periodically
-                if len(self.signals) < 5:  # Keep buffer small
-                    signal = Signal(
-                        signal_type="SOCIAL_TREND",
-                        category="HYPE",
-                        data={
-                            "topic": "Crypto Trading",
-                            "mentions": 15000,
-                            "growth_rate": 3.5,
-                            "platform": "Twitter",
-                        },
-                        confidence=0.6,
-                        source="Twitter API",
-                        timestamp=datetime.utcnow(),
-                    )
-                    self.signals.append(signal)
-                    logger.info("Signal detected: Social trend")
-        
+            # MOCK: Add at most one social signal per run, and only if buffer is low,
+            # so you don't get the same "Will a major market event occur?" draft every 5 min.
+            if len(self.signals) >= 2:
+                return
+            topics = ("Crypto Trading", "Bitcoin ETF", "Fed rates", "Ethereum upgrade", "Meme coins")
+            signal = Signal(
+                signal_type="SOCIAL_TREND",
+                category="HYPE",
+                data={
+                    "topic": random.choice(topics),
+                    "mentions": random.randint(8000, 25000),
+                    "growth_rate": round(random.uniform(2.0, 5.0), 1),
+                    "platform": "Twitter",
+                },
+                confidence=round(0.5 + random.random() * 0.2, 2),
+                source="Twitter API (mock)",
+                timestamp=datetime.utcnow(),
+            )
+            self.signals.append(signal)
+            logger.info("Signal detected: Social trend (mock)")
         except Exception as e:
             logger.error(f"Error checking social signals: {e}")
     

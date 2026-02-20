@@ -46,7 +46,10 @@ class FastAPIClient {
       const error = await response.json().catch(() => ({
         error: `HTTP ${response.status}: ${response.statusText}`,
       }));
-      throw new Error(error.error || error.detail || 'Request failed');
+      const msg = error.error ?? (Array.isArray(error.detail)
+        ? error.detail.map((d: { msg?: string }) => d?.msg ?? JSON.stringify(d)).join('; ')
+        : error.detail);
+      throw new Error(typeof msg === 'string' ? msg : 'Request failed');
     }
 
     return response.json();
@@ -67,12 +70,151 @@ class FastAPIClient {
     });
   }
 
+  /**
+   * Run scraping synchronously and return posts (for scrape-all flow).
+   */
+  async scrapeSync(params: {
+    sources?: string[];
+    days_back?: number;
+    max_items_per_source?: number;
+  }): Promise<{
+    success: boolean;
+    total: number;
+    stats: Record<string, number>;
+    errors?: Array<{ source: string; error: string }>;
+    posts: Array<{
+      id: string;
+      source: string;
+      source_id: string;
+      source_name: string;
+      title?: string;
+      text: string;
+      date_iso: string;
+      url: string;
+      metadata: Record<string, unknown>;
+    }>;
+  }> {
+    return this.request('/api/v1/scraping/scrape', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
   async getScrapingProgress() {
     return this.request('/api/v1/scraping/progress');
   }
 
   async getScrapedPosts(limit: number = 100) {
     return this.request(`/api/v1/scraping/posts?limit=${limit}`);
+  }
+
+  // ============================================
+  // SOURCES (single source of truth in backend)
+  // ============================================
+
+  async getTelegramChannels() {
+    return this.request<Array<Record<string, unknown>>>('/api/v1/sources/telegram');
+  }
+
+  async addTelegramChannel(url: string) {
+    return this.request<Record<string, unknown>>('/api/v1/sources/telegram', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
+  }
+
+  async deleteTelegramChannel(id: string) {
+    return this.request<{ success: boolean }>(`/api/v1/sources/telegram/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleTelegramChannel(id: string) {
+    return this.request<Record<string, unknown>>(`/api/v1/sources/telegram/${encodeURIComponent(id)}/toggle`, {
+      method: 'PATCH',
+    });
+  }
+
+  async getTwitterAccounts() {
+    return this.request<Array<Record<string, unknown>>>('/api/v1/sources/twitter');
+  }
+
+  async addTwitterAccount(params: { username: string; displayName?: string; accountType?: string; userId?: string }) {
+    return this.request<Record<string, unknown>>('/api/v1/sources/twitter', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: params.username,
+        display_name: params.displayName,
+        account_type: params.accountType ?? 'person',
+        user_id: params.userId,
+      }),
+    });
+  }
+
+  async deleteTwitterAccount(id: string) {
+    return this.request<{ success: boolean }>(`/api/v1/sources/twitter/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleTwitterAccount(id: string) {
+    return this.request<Record<string, unknown>>(`/api/v1/sources/twitter/${encodeURIComponent(id)}/toggle`, {
+      method: 'PATCH',
+    });
+  }
+
+  async getRSSFeeds() {
+    return this.request<Array<Record<string, unknown>>>('/api/v1/sources/rss');
+  }
+
+  async addRSSFeed(params: { name: string; url: string; category?: string }) {
+    return this.request<Record<string, unknown>>('/api/v1/sources/rss', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: params.name,
+        url: params.url,
+        category: params.category ?? 'general',
+      }),
+    });
+  }
+
+  async deleteRSSFeed(id: string) {
+    return this.request<{ success: boolean }>(`/api/v1/sources/rss/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleRSSFeed(id: string) {
+    return this.request<Record<string, unknown>>(`/api/v1/sources/rss/${encodeURIComponent(id)}/toggle`, {
+      method: 'PATCH',
+    });
+  }
+
+  async getPolymarketTopics() {
+    return this.request<Array<Record<string, unknown>>>('/api/v1/sources/polymarket');
+  }
+
+  async addPolymarketTopic(params: { name: string; keywords: string[]; category?: string }) {
+    return this.request<Record<string, unknown>>('/api/v1/sources/polymarket', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: params.name,
+        keywords: params.keywords,
+        category: params.category ?? 'other',
+      }),
+    });
+  }
+
+  async deletePolymarketTopic(id: string) {
+    return this.request<{ success: boolean }>(`/api/v1/sources/polymarket/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async togglePolymarketTopic(id: string) {
+    return this.request<Record<string, unknown>>(`/api/v1/sources/polymarket/${encodeURIComponent(id)}/toggle`, {
+      method: 'PATCH',
+    });
   }
 
   // ============================================

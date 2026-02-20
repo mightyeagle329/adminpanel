@@ -82,14 +82,32 @@ export async function scrapeAllSources(
   };
 
   // ============================================
-  // 1. Scrape Telegram
+  // 1. Scrape Telegram (channels from backend when FastAPI used, else local db)
   // ============================================
   if (sources.telegram) {
     try {
       updateProgress('📺 Scraping Telegram channels...');
-      
-      const channels = await getChannels();
-      const enabledChannels = channels.filter(ch => ch.enabled !== false); // Default to enabled if not specified
+
+      let channels: Array<{ id: string; url: string; username: string; enabled?: boolean }> = [];
+      const fastApiUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+      if (fastApiUrl) {
+        try {
+          const { fastApiClient } = await import('@/lib/fastApiClient');
+          const list = await fastApiClient.getTelegramChannels();
+          channels = (list || []).map((ch: Record<string, unknown>) => ({
+            id: String(ch.id),
+            url: String(ch.url),
+            username: String(ch.username),
+            enabled: (ch.enabled as boolean) !== false,
+          }));
+        } catch (e) {
+          console.warn('Could not load Telegram channels from FastAPI, using local db:', (e as Error)?.message);
+        }
+      }
+      if (channels.length === 0) {
+        channels = await getChannels();
+      }
+      const enabledChannels = channels.filter(ch => ch.enabled !== false);
 
       console.log(`Telegram: Found ${channels.length} channels, ${enabledChannels.length} enabled`);
 
@@ -166,21 +184,51 @@ export async function scrapeAllSources(
   }
 
   // ============================================
-  // 3. Scrape Twitter
+  // 3. Scrape Twitter (prefer FastAPI backend so one API key is used)
   // ============================================
   if (sources.twitter) {
     try {
       updateProgress('🐦 Scraping Twitter accounts...');
-      
-      const accounts = await getTwitterAccounts();
-      console.log(`Twitter: Found ${accounts.length} accounts`);
-      
-      const twitterPosts = await scrapeTwitter(accounts, daysBack);
-      console.log(`Twitter: Scraped ${twitterPosts.length} posts`);
-      
+
+      const fastApiUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+      let twitterPosts: UnifiedPost[] = [];
+
+      if (fastApiUrl) {
+        try {
+          const { fastApiClient } = await import('@/lib/fastApiClient');
+          const result = await fastApiClient.scrapeSync({
+            sources: ['twitter'],
+            days_back: daysBack,
+            max_items_per_source: 50,
+          });
+          if (result.posts?.length) {
+            twitterPosts = result.posts.map((p) => ({
+              id: p.id,
+              source: 'twitter' as const,
+              sourceId: p.source_id,
+              sourceName: p.source_name,
+              title: p.title ?? undefined,
+              text: p.text,
+              dateIso: typeof p.date_iso === 'string' ? p.date_iso : new Date(p.date_iso).toISOString(),
+              url: p.url,
+              metadata: p.metadata ?? {},
+            }));
+            console.log(`Twitter (FastAPI): Scraped ${twitterPosts.length} posts`);
+          }
+        } catch (backendError: any) {
+          console.warn('Twitter via FastAPI failed, falling back to frontend scraper:', backendError?.message ?? backendError);
+        }
+      }
+
+      if (twitterPosts.length === 0) {
+        const accounts = await getTwitterAccounts();
+        console.log(`Twitter: Found ${accounts.length} accounts`);
+        twitterPosts = await scrapeTwitter(accounts, daysBack);
+        console.log(`Twitter: Scraped ${twitterPosts.length} posts`);
+      }
+
       allPosts.push(...twitterPosts);
       stats.twitter = twitterPosts.length;
-      
       completedSources++;
     } catch (error: any) {
       errors.push({ source: 'twitter', error: error.message });

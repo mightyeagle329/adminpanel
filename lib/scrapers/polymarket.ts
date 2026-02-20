@@ -53,8 +53,9 @@ function transformPolymarketToPost(
   market: any,
   topic: PolymarketTopic
 ): UnifiedPost {
-  const yesOutcome = market.outcomes?.find((o: any) => o.outcome === 'Yes');
-  const probability = yesOutcome?.probability || 0;
+  const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
+  const yesOutcome = outcomes.find((o: any) => (o?.outcome ?? '').toLowerCase() === 'yes');
+  const probability = yesOutcome?.probability ?? (outcomes[0]?.probability ?? 0);
 
   return {
     id: `polymarket_${market.id}`,

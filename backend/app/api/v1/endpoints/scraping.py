@@ -16,6 +16,28 @@ from app.services.scraping.orchestrator import scraping_orchestrator
 router = APIRouter()
 
 
+@router.post("/scrape")
+async def scrape_sync(request: ScrapeRequest):
+    """
+    Run scraping synchronously and return posts.
+    Use this when the client needs posts in a single request (e.g. frontend scrape-all).
+    """
+    result = await scraping_orchestrator.scrape_all(
+        request.sources,
+        request.days_back,
+        request.max_items_per_source,
+    )
+    # Include posts in response for sync usage
+    posts_data = [p.model_dump(mode="json") for p in scraping_orchestrator.get_posts()]
+    return {
+        "success": result.get("success", True),
+        "total": result.get("total", 0),
+        "stats": result.get("stats", {}),
+        "errors": result.get("errors"),
+        "posts": posts_data,
+    }
+
+
 @router.post("/start")
 async def start_scraping(
     request: ScrapeRequest,
@@ -55,40 +77,22 @@ async def get_scraped_posts(
 ):
     """
     Get scraped posts
-    
+
     Args:
         limit: Maximum number of posts to return
         source: Filter by source type
     """
     posts = scraping_orchestrator.get_posts()
-    
+
     # Filter by source if specified
     if source:
         posts = [p for p in posts if p.source == source]
-    
+
     # Limit results
     posts = posts[:limit]
-    
+
     return {
         "success": True,
         "total": len(posts),
         "posts": posts,
     }
-
-
-@router.post("/sources/twitter")
-async def add_twitter_account():
-    """Add a Twitter account to monitor"""
-    return BaseResponse(
-        success=True,
-        message="Twitter account added",
-    )
-
-
-@router.post("/sources/rss")
-async def add_rss_feed():
-    """Add an RSS feed to monitor"""
-    return BaseResponse(
-        success=True,
-        message="RSS feed added",
-    )
