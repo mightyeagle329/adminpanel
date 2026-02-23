@@ -70,7 +70,7 @@ backend/*.egg-info/
 backend/dist/
 backend/build/
 backend/*.egg
-backend/logs/*.log
+backend/logs/
 backend/data/
 
 # Python cache (anywhere in project)

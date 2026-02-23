@@ -94,9 +94,13 @@ function normalizeOneSentenceQuestion(s: string): string {
   return normalizeQuestionTimeframe(q);
 }
 
+// Minimum ms to wait between batches to stay under 30k TPM
+const BATCH_DELAY_MS = 22000;
+const MAX_RETRIES = 3;
+
 export async function generatePredictionQuestionsBatch({
   posts,
-  maxPostsPerRequest = 50,
+  maxPostsPerRequest = 20,
   apiKey,
   model = 'gpt-4o',
 }: {
@@ -117,16 +121,20 @@ export async function generatePredictionQuestionsBatch({
   const batches = chunkArray(usable, maxPostsPerRequest);
   const all: QuestionResult[] = [];
 
-  for (const batch of batches) {
+  for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+    const batch = batches[batchIdx];
+
+    // Pace requests — wait between batches to stay under TPM limit
+    if (batchIdx > 0) {
+      console.log(`[questionGenerator] Waiting ${BATCH_DELAY_MS}ms before batch ${batchIdx + 1}/${batches.length}...`);
+      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+    }
+
     const items = batch.map((p, idx) => ({
       id: p.id,
       source: p.source || 'telegram',
       sourceName: p.sourceName || p.channelTitle,
-      channel: p.channelTitle,
-      username: p.username,
-      dateIso: p.dateIso,
-      permalink: p.permalink,
-      text: p.text.slice(0, 700),
+      text: p.text.slice(0, 400), // shorter to reduce token usage
       idx,
     }));
 
@@ -177,24 +185,34 @@ Guidance:
     const input = `Posts (JSON):\n${JSON.stringify(items, null, 2)}`;
 
     let parsedObj: any = null;
-    let outputText = '';
 
-    try {
-      const response = await client.chat.completions.create({
-        model: model,
-        messages: [
-          { role: 'system', content: instructions },
-          { role: 'user', content: input },
-        ],
-        response_format: { type: 'json_object' },
-        max_tokens: 1500,
-      });
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await client.chat.completions.create({
+          model: model,
+          messages: [
+            { role: 'system', content: instructions },
+            { role: 'user', content: input },
+          ],
+          response_format: { type: 'json_object' },
+          max_tokens: 4096,
+        });
 
-      outputText = response.choices[0]?.message?.content || '';
-      parsedObj = coerceQuestionsObject(outputText);
-    } catch (e) {
-      console.error('Question generation failed:', e);
-      parsedObj = { questions: [] };
+        const outputText = response.choices[0]?.message?.content || '';
+        parsedObj = coerceQuestionsObject(outputText);
+        break; // success
+      } catch (e: any) {
+        if (e?.status === 429 && attempt < MAX_RETRIES) {
+          const retryAfterMs = parseInt(e?.headers?.['retry-after-ms'] || '60000', 10);
+          const waitMs = retryAfterMs + 2000;
+          console.warn(`[questionGenerator] Rate limited (batch ${batchIdx + 1}). Waiting ${waitMs}ms before retry ${attempt}/${MAX_RETRIES}...`);
+          await new Promise((r) => setTimeout(r, waitMs));
+        } else {
+          console.error(`[questionGenerator] Batch ${batchIdx + 1} failed:`, e);
+          parsedObj = { questions: [] };
+          break;
+        }
+      }
     }
 
     const parsedQuestions = safeArray(parsedObj?.questions);
@@ -204,7 +222,7 @@ Guidance:
         const question = normalizeOneSentenceQuestion(q.question);
         return { sourceIds, question };
       })
-      .filter((q) => q.sourceIds.length > 0 && q.question.length > 0);
+      .filter((q) => q.question.length > 0);
 
     all.push(...normalized);
   }

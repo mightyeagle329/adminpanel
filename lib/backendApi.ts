@@ -223,6 +223,10 @@ export async function sendQuestionsToBackend(
   // Construct URL
   const url = `${API_CONFIG.baseUrl}${ENDPOINTS.createMarket}`;
 
+  console.log('[backendApi] POST', url);
+  console.log('[backendApi] Authorization: Bearer', accessToken);
+  console.log('[backendApi] Request body:', JSON.stringify(payload, null, 2));
+
   // Make request
   const response = await makeRequest<BackendApiResponse>(url, {
     method: 'POST',

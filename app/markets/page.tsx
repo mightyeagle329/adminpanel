@@ -5,43 +5,37 @@ import { useToast } from '@/components/ToastProvider';
 import { useAuthSession } from '@/components/AuthSessionProvider';
 import { Loader2, RefreshCw, ChevronLeft, ChevronRight, Coins } from 'lucide-react';
 
-type MarketStatus = 'PENDING' | 'OPEN' | 'LOCKED' | 'SETTLING' | 'RESOLVED' | 'VOID';
+type MarketStatus = 'Pending' | 'Open' | 'Locked' | 'Settling' | 'Resolved' | 'Void';
 
 type Market = {
   market_id: string;
-  title: string;
-  yes_account: string;
-  no_account: string;
+  metadata: { title?: string };
+  yes_mint_address: string | null;
+  no_mint_address: string | null;
   status: MarketStatus | string;
+  outcome_a_label?: string;
+  outcome_b_label?: string;
 };
 
 type PendingMarket = {
   market_id: string;
-  title: string;
-  status: 'PENDING';
+  metadata: { title?: string };
+  status: MarketStatus | string;
+  outcome_a_label?: string;
+  outcome_b_label?: string;
 };
 
 type UpdatedMarketChange = {
   market_id: string;
   title: string;
-  yes_account: string;
-  no_account: string;
+  yes_mint_address: string | null;
+  no_mint_address: string | null;
   previous_status: string;
   updated_status: MarketStatus;
 };
 
-const STATUS_OPTIONS: MarketStatus[] = ['PENDING', 'OPEN', 'LOCKED', 'SETTLING', 'RESOLVED', 'VOID'];
+const STATUS_OPTIONS: MarketStatus[] = ['Pending', 'Open', 'Locked', 'Settling', 'Resolved', 'Void'];
 
-// Demo data for PENDING tab (backend not yet implemented)
-const PENDING_DEMO_MARKETS: PendingMarket[] = [
-  { market_id: 'pending_1', title: 'Will BTC break above $100,000 within 24 hours?', status: 'PENDING' },
-  { market_id: 'pending_2', title: 'Will ETH fall below $2,000 in the next 24 hours?', status: 'PENDING' },
-  { market_id: 'pending_3', title: 'Will Fed rates announcement move BTC by more than 3%?', status: 'PENDING' },
-  { market_id: 'pending_4', title: 'Will Bitcoin ETF be a major market driver in the next 24 hours?', status: 'PENDING' },
-  { market_id: 'pending_5', title: 'Will Ethereum upgrade announcement happen today?', status: 'PENDING' },
-  { market_id: 'pending_6', title: 'Will Crypto Trading trend push ETH above $3,500?', status: 'PENDING' },
-  { market_id: 'pending_7', title: 'Will Meme coins volume exceed $5B in the next 24 hours?', status: 'PENDING' },
-];
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://62.171.153.189:8080';
 
@@ -50,7 +44,7 @@ export default function MarketsPage() {
   const { session } = useAuthSession();
 
   const [mounted, setMounted] = useState(false);
-  const [status, setStatus] = useState<MarketStatus>('PENDING');
+  const [status, setStatus] = useState<MarketStatus>('Pending');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,22 +56,25 @@ export default function MarketsPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+  const [pendingMarkets, setPendingMarkets] = useState<PendingMarket[]>([]);
+  const [isPendingLoading, setIsPendingLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    // Only run on client after mount; skip fetch for PENDING (uses demo data)
-    if (!mounted || viewMode !== 'markets' || status === 'PENDING') return;
+    if (!mounted || viewMode !== 'markets') return;
     fetchMarkets();
   }, [status, page, limit, mounted, viewMode]);
 
   const fetchMarkets = async () => {
     setIsLoading(true);
+    if (status === 'Pending') setIsPendingLoading(true);
 
     try {
-      const params = new URLSearchParams({ status, limit: String(limit), page: String(page) });
+      const offset = (page - 1) * limit;
+      const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
       const url = `${API_BASE.replace(/\/$/, '')}/v1/markets?${params.toString()}`;
 
       const res = await fetch(url, {
@@ -89,11 +86,28 @@ export default function MarketsPage() {
 
       const data = await res.json().catch(() => null);
 
-      // Expecting shape: { markets: Market[]; total: number }
       console.log('Markets response', { url, httpStatus: res.status, data });
 
-      const nextMarkets: Market[] = Array.isArray(data?.markets) ? data.markets : [];
-      const nextTotal: number = typeof data?.total === 'number' ? data.total : nextMarkets.length;
+      // Pending returns a plain array; other statuses return { markets: [], total: N }
+      const rawList: any[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.markets)
+        ? data.markets
+        : [];
+      const nextTotal: number = typeof data?.total === 'number' ? data.total : rawList.length;
+
+      if (status === 'Pending') {
+        setPendingMarkets(rawList as PendingMarket[]);
+        setTotal(nextTotal);
+        setIsPendingLoading(false);
+        if (!res.ok) {
+          addToast({ description: `Request failed (${res.status})`, variant: 'error' });
+        }
+        return;
+      }
+
+      const nextMarkets: Market[] = rawList as Market[];
+      const nextTotal2: number = nextTotal;
 
       // Apply any local status overrides from updatedChanges so that
       // when we return to a page, we still see the latest edited status
@@ -104,7 +118,7 @@ export default function MarketsPage() {
       });
 
       setMarkets(adjustedMarkets);
-      setTotal(nextTotal);
+      setTotal(nextTotal2);
 
       // Save raw backend response for manual testing snapshots
       try {
@@ -115,7 +129,7 @@ export default function MarketsPage() {
             status,
             page,
             limit,
-            total: nextTotal,
+            total: nextTotal2,
             markets: nextMarkets,
           }),
         });
@@ -142,6 +156,7 @@ export default function MarketsPage() {
       addToast({ description: msg, variant: 'error' });
     } finally {
       setIsLoading(false);
+      setIsPendingLoading(false);
     }
   };
 
@@ -193,9 +208,9 @@ export default function MarketsPage() {
         ...prev,
         [marketId]: {
           market_id: market.market_id,
-          title: market.title,
-          yes_account: market.yes_account,
-          no_account: market.no_account,
+          title: market.metadata?.title || market.market_id,
+          yes_mint_address: market.yes_mint_address,
+          no_mint_address: market.no_mint_address,
           previous_status: originalStatus || nextUpper,
           updated_status: nextStatus,
         },
@@ -211,17 +226,20 @@ export default function MarketsPage() {
 
     setGeneratingIds(prev => new Set(prev).add(marketId));
     try {
-      // Rust backend endpoint — requires Bearer token from wallet sign-in
-      const url = `${API_BASE.replace(/\/$/, '')}/v1/markets/${encodeURIComponent(marketId)}/generate-tokens`;
+      const url = `${API_BASE.replace(/\/$/, '')}/v1/admin/market/create-tokens`;
+      const body = JSON.stringify({ market_id: marketId });
+      console.log('[markets] POST', url, body);
       const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
+        body,
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
+        setPendingMarkets(prev => prev.filter(m => m.market_id !== marketId));
         addToast({ description: `Tokens generated for market ${marketId}`, variant: 'success' });
       } else {
         const msg = data?.error || data?.message || data?.detail || `Request failed (${res.status})`;
@@ -346,15 +364,10 @@ export default function MarketsPage() {
           <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
             <span>
               Status: <span className="text-white font-medium">{status}</span>
-              {status === 'PENDING' ? (
-                <> · Total: <span className="text-white font-medium">{PENDING_DEMO_MARKETS.length}</span> <span className="text-gray-600">(demo)</span></>
-              ) : (
-                <> · Page: <span className="text-white font-medium">{page}</span> /{' '}
-                <span className="text-white font-medium">{totalPages}</span> · Limit: {limit} · Total: {total}</>
-              )}
+               · Page: <span className="text-white font-medium">{page}</span> /{' '}
+                <span className="text-white font-medium">{totalPages}</span> · Limit: {limit} · Total: {total}
             </span>
-            {status !== 'PENDING' && (
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 mr-3">
                   <span className="text-gray-500">Show:</span>
                   <select
@@ -385,14 +398,21 @@ export default function MarketsPage() {
                   Next <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
-            )}
           </div>
 
-          {/* PENDING tab: demo data with generate button */}
-          {viewMode === 'markets' && status === 'PENDING' ? (
+          {/* Pending tab: real backend data */}
+          {viewMode === 'markets' && status === 'Pending' ? (
+            isPendingLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+              </div>
+            ) : pendingMarkets.length === 0 ? (
+              <div className="text-xs text-gray-400 py-4 text-center">No pending markets found.</div>
+            ) : (
             <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+              <div className="h-[500px] overflow-y-auto border border-[#34316b] rounded-xl bg-[#221f54]">
               <table className="min-w-full text-xs text-gray-200">
-                <thead className="bg-gray-800/80 sticky top-0 z-10">
+                <thead className="bg-[#252264] sticky top-0 z-10">
                   <tr>
                     <th className="px-3 py-2 text-left font-semibold text-gray-300">Title</th>
                     <th className="px-3 py-2 text-left font-semibold text-gray-300 w-28">Status</th>
@@ -400,12 +420,13 @@ export default function MarketsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
-                  {PENDING_DEMO_MARKETS.map((m) => {
+                  {pendingMarkets.map((m) => {
                     const isGenerating = generatingIds.has(m.market_id);
+                    const title = m.metadata?.title || m.market_id;
                     return (
-                      <tr key={m.market_id} className="hover:bg-gray-800/60">
+                      <tr key={m.market_id} className="hover:bg-[#292567]">
                         <td className="px-3 py-2 align-middle">
-                          <div className="text-gray-100 text-xs leading-snug line-clamp-2">{m.title}</div>
+                          <div className="text-gray-100 text-xs leading-snug line-clamp-2">{title}</div>
                         </td>
                         <td className="px-3 py-2 align-middle">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-900/40 border border-amber-500/60 text-[11px] text-amber-300 font-medium">
@@ -432,7 +453,9 @@ export default function MarketsPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
+            )
           ) : viewMode === 'markets' ? (
             isLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -449,19 +472,19 @@ export default function MarketsPage() {
                     <tr>
                       <th className="px-3 py-2 text-left font-semibold text-gray-300">Title</th>
                       <th className="px-3 py-2 text-left font-semibold text-gray-300 w-32">Status</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-300 w-32">Yes Account</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-300 w-32">No Account</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-300 w-40">Yes Mint</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-300 w-40">No Mint</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {markets.map((m) => (
                       <tr key={m.market_id} className="hover:bg-gray-800/60">
                         <td className="px-3 py-2 align-top">
-                          <div className="text-gray-100 text-xs leading-snug line-clamp-2">{m.title}</div>
+                          <div className="text-gray-100 text-xs leading-snug line-clamp-2">{m.metadata?.title || m.market_id}</div>
                         </td>
                         <td className="px-3 py-2 align-top">
                           <select
-                            value={(m.status || '').toUpperCase()}
+                            value={m.status}
                             onChange={(e) => handleStatusChange(m.market_id, e.target.value as MarketStatus)}
                             className="px-2 py-1 bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-100"
                           >
@@ -473,13 +496,13 @@ export default function MarketsPage() {
                           </select>
                         </td>
                         <td className="px-3 py-2 align-top">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-500/60 text-[11px] text-emerald-200">
-                            {m.yes_account}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-500/60 text-[11px] text-emerald-200 font-mono truncate max-w-[140px]">
+                            {m.yes_mint_address ?? '—'}
                           </span>
                         </td>
                         <td className="px-3 py-2 align-top">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-900/40 border border-red-500/60 text-[11px] text-red-200">
-                            {m.no_account}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-900/40 border border-red-500/60 text-[11px] text-red-200 font-mono truncate max-w-[140px]">
+                            {m.no_mint_address ?? '—'}
                           </span>
                         </td>
                       </tr>
@@ -513,8 +536,8 @@ export default function MarketsPage() {
                         <th className="px-3 py-2 text-left font-semibold text-gray-300">Title</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-300 w-32">Previous Status</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-300 w-32">Updated Status</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-300 w-32">Yes Account</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-300 w-32">No Account</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-300 w-40">Yes Mint</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-300 w-40">No Mint</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
@@ -534,13 +557,13 @@ export default function MarketsPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2 align-top">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-500/60 text-[11px] text-emerald-200">
-                              {m.yes_account}
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-500/60 text-[11px] text-emerald-200 font-mono truncate max-w-[140px]">
+                              {m.yes_mint_address ?? '—'}
                             </span>
                           </td>
                           <td className="px-3 py-2 align-top">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-900/40 border border-red-500/60 text-[11px] text-red-200">
-                              {m.no_account}
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-900/40 border border-red-500/60 text-[11px] text-red-200 font-mono truncate max-w-[140px]">
+                              {m.no_mint_address ?? '—'}
                             </span>
                           </td>
                           <td className="px-3 py-2 align-top text-right">
