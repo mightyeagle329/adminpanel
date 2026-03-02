@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/components/ToastProvider';
 import { useAuthSession } from '@/components/AuthSessionProvider';
 import { Loader2, RefreshCw, ChevronLeft, ChevronRight, Coins } from 'lucide-react';
+import SafetyModal from '@/components/SafetyModal';
+import { fastApiClient } from '@/lib/fastApiClient';
+import type { AICuratorConfig, AIMode } from '@/lib/types';
 
 type MarketStatus = 'Pending' | 'Open' | 'Locked' | 'Settling' | 'Resolved' | 'Void';
 
@@ -52,6 +55,11 @@ export default function MarketsPage() {
   const { addToast } = useToast();
   const { session } = useAuthSession();
 
+  // Master AI toggle (global)
+  const [aiConfig, setAiConfig] = useState<AICuratorConfig | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiConfirmOpen, setAiConfirmOpen] = useState(false);
+
   const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<MarketStatus>('Pending');
   const [page, setPage] = useState(1);
@@ -67,7 +75,26 @@ export default function MarketsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
 
+  const [voidConfirm, setVoidConfirm] = useState<PendingChange | null>(null);
+
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    // Load AI curator config for master toggle badge
+    (async () => {
+      setAiLoading(true);
+      try {
+        const cfg = await fastApiClient.getAICuratorConfig();
+        setAiConfig(cfg);
+      } catch (e: any) {
+        // Non-fatal: keep markets page functional even if FastAPI isn't running
+        console.warn('[markets] unable to load AI config', e?.message || e);
+      } finally {
+        setAiLoading(false);
+      }
+    })();
+  }, [mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -117,12 +144,41 @@ export default function MarketsPage() {
 
   // Called when user picks a new status from the dropdown — opens confirm modal
   const handleStatusChange = (market: Market, toStatus: MarketStatus) => {
-    setPendingChange({
+    const next: PendingChange = {
       market_id: market.market_id,
       title: market.metadata?.title || market.market_id,
       fromStatus: String(market.status),
       toStatus,
-    });
+    };
+
+    // High-risk: Void must use safety modal
+    if (toStatus === 'Void') {
+      setVoidConfirm(next);
+      return;
+    }
+
+    setPendingChange(next);
+  };
+
+  const toggleAiMode = async () => {
+    if (!aiConfig) {
+      addToast({ description: 'AI config not loaded (is FastAPI running?)', variant: 'warning' });
+      return;
+    }
+
+    const newMode: AIMode = aiConfig.mode === 'HUMAN_REVIEW' ? 'FULL_CONTROL' : 'HUMAN_REVIEW';
+
+    try {
+      await fastApiClient.toggleAIMode(newMode);
+      const cfg = await fastApiClient.getAICuratorConfig();
+      setAiConfig(cfg);
+      addToast({
+        description: `AI mode set to ${newMode === 'FULL_CONTROL' ? '⚡ FULL CONTROL' : '🛡️ HUMAN REVIEW'} (FastAPI mock)`,
+        variant: 'success',
+      });
+    } catch (e: any) {
+      addToast({ description: e?.message || 'Failed to toggle AI mode', variant: 'error' });
+    }
   };
 
   // Send the actual status-change request
@@ -226,15 +282,37 @@ export default function MarketsPage() {
               <h1 className="text-xl font-bold text-white">Markets</h1>
               <p className="text-xs text-gray-400">View and manage markets by status</p>
             </div>
-            <button
-              type="button"
-              onClick={fetchMarkets}
-              disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-500/60 bg-cyan-600/90 text-white text-xs font-medium shadow-sm hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Master AI Toggle + badge */}
+              <button
+                type="button"
+                onClick={() => setAiConfirmOpen(true)}
+                disabled={aiLoading || !aiConfig}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                  aiConfig?.mode === 'FULL_CONTROL'
+                    ? 'bg-yellow-700/80 border-yellow-500 text-yellow-50 hover:bg-yellow-600'
+                    : 'bg-emerald-700/70 border-emerald-500 text-emerald-50 hover:bg-emerald-600'
+                } ${(!aiConfig || aiLoading) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                title="Global AI Operating Mode"
+              >
+                {aiConfig?.mode === 'FULL_CONTROL' ? '⚡ FULL CONTROL' : '🛡️ HUMAN REVIEW'}
+                {aiConfig?.mode === 'FULL_CONTROL' && (
+                  <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-red-600/80 border border-red-400 text-[10px] font-bold animate-pulse">
+                    AI LIVE ACTION
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={fetchMarkets}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-500/60 bg-cyan-600/90 text-white text-xs font-medium shadow-sm hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           {/* Status filter tabs */}
@@ -452,6 +530,41 @@ export default function MarketsPage() {
           </div>
         </div>
       )}
+
+      {/* High-risk: VOID uses SafetyModal */}
+      <SafetyModal
+        isOpen={!!voidConfirm}
+        onClose={() => setVoidConfirm(null)}
+        onConfirm={async () => {
+          if (!voidConfirm) return;
+          // Reuse existing request logic by setting pendingChange then calling handler
+          setPendingChange(voidConfirm);
+          setVoidConfirm(null);
+          // Defer to allow modal close state to apply
+          setTimeout(() => {
+            void handleConfirmSend();
+          }, 0);
+        }}
+        level="high-risk"
+        title="⚠️ VOID market?"
+        message={`This action cannot be undone. You are about to VOID market:\n\n${voidConfirm?.title || ''}`}
+        confirmText="CONFIRM VOID"
+      />
+
+      {/* AI mode toggle confirmation */}
+      <SafetyModal
+        isOpen={aiConfirmOpen}
+        onClose={() => setAiConfirmOpen(false)}
+        onConfirm={toggleAiMode}
+        level={aiConfig?.mode === 'FULL_CONTROL' ? 'high-risk' : 'standard'}
+        title="Change AI operating mode?"
+        message={
+          aiConfig?.mode === 'FULL_CONTROL'
+            ? 'You are turning OFF Full Control. AI will generate drafts requiring human publish.'
+            : 'You are turning ON Full Control. AI may publish markets automatically when backend integration is enabled.'
+        }
+        confirmText="Confirm"
+      />
     </>
   );
 }

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   Home, Radio, TrendingUp, Twitter, Rss, Database, Sparkles, Settings, BarChart3,
   Bot, Bell,
-  // Wand2, Shield, DollarSign, Trophy, Users, // restore when re-enabling Market Wizard, Treasury, Competitions, Security, CRM
+  Wand2, Shield, DollarSign, Trophy, Users,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -20,14 +20,13 @@ export default function Sidebar() {
     { name: 'All Data', href: '/data', icon: Database },
     { name: 'Questions', href: '/questions', icon: Sparkles },
     { name: 'Markets', href: '/markets', icon: BarChart3 },
+    { name: 'Market Wizard', href: '/market-wizard', icon: Wand2 },
+    { name: 'Treasury & Risk', href: '/treasury', icon: DollarSign },
+    { name: 'Competitions', href: '/competitions', icon: Trophy },
+    { name: 'Security', href: '/security', icon: Shield },
+    { name: 'CRM', href: '/crm', icon: Users },
+    { name: 'Communications', href: '/communications', icon: Bell },
     { name: 'AI Curator', href: '/ai-curator', icon: Bot },
-    // --- Commented out for later use ---
-    // { name: 'Market Wizard', href: '/market-wizard', icon: Wand2 },
-    // { name: 'Treasury & Risk', href: '/treasury', icon: DollarSign },
-    // { name: 'Competitions', href: '/competitions', icon: Trophy },
-    // { name: 'Security', href: '/security', icon: Shield },
-    // { name: 'CRM', href: '/crm', icon: Users },
-    // { name: 'Communications', href: '/communications', icon: Bell },
   ];
 
   return (

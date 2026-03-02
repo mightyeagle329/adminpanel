@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bot, Power, Settings, TrendingUp, RefreshCw, Check, X, AlertCircle } from 'lucide-react';
+import { Bot, RefreshCw, Check, X, AlertCircle } from 'lucide-react';
 import { fastApiClient } from '@/lib/fastApiClient';
 import { useToast } from '@/components/ToastProvider';
 import { AICuratorStatus, AICuratorConfig, AIGeneratedMarketDraft, AIMode } from '@/lib/types';
@@ -96,7 +96,7 @@ export default function AICuratorPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">AI Curator Engine</h1>
-            <p className="text-sm text-gray-400">Phase 6: Autonomous Market Generation</p>
+            <p className="text-sm text-gray-400">Autonomous market draft generation and approval</p>
           </div>
         </div>
 
